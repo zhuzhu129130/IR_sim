@@ -1,0 +1,21 @@
+
+轨迹步数TrajNum:2
+
+初始X坐标xpos:0.0f;
+初始Y坐标ypos:0.0f;//单位:m
+初始Z坐标zpos:1500.0f;//单位:m
+
+初始速度velocity:2.0f;//速度m/s
+加速度acceleration:0 .0f;//加速度m/s2
+：
+初始偏航角azimation:0.0f;//单位：角度  角度越大，顺时针旋转绕飞机的横轴旋转
+初始俯仰角elevation:0.0f;//单位：角度
+初始横滚角banking:0.0f;//单位：角度
+
+转向steerspd:1.0f;//delta偏航角,单位：角度/s  绕飞机的横轴旋转
+爬升raisespd:1.0f;//delta俯仰角,单位：角度/s  绕飞机的纵轴旋转
+倾斜rollspd:0.0f;//delta横滚角,单位：角度/s   绕垂直飞机的轴旋转
+
+初始时间currenttime:0.0f;//当前时间,s
+时间间隔interval:360.0f;//时间间隔,s
+终止时间stoptime:360.0f;//轨迹运行结束时间，s

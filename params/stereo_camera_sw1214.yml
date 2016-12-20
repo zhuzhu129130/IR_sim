@@ -1,0 +1,43 @@
+%YAML:1.0
+calibrationDate: "Sun Apr 17 16:49:57 2016\n"
+num_boards: 24
+imageSize:
+   - 320
+   - 256
+# flags: + use_intrinsic_guess
+stereoCalibrateFlags: 1
+leftCameraMatrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 1224.43263378262, 0., 154.642031155156, 0., 1220.77603255849, 114.245282714810, 0., 0., 1. ]
+leftDistortCoefficients: !!opencv-matrix
+   rows: 1
+   cols: 8
+   dt: d
+   data: [  0.0607259824697931, 2.22945537367577, 0., 0.,
+       0., 0., 0., 0. ]
+rightCameraMatrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 1223.73442088527, 0., 149.533509076478, 0., 1219.47114562777, 134.441379430820, 0., 0., 1. ]
+rightDistortCoefficients: !!opencv-matrix
+   rows: 1
+   cols: 8
+   dt: d
+   data: [ 0.303607600098476, -8.58399862069062, 0., 0.,
+       0, 0., 0., 0. ]
+rotationMatrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 0.999931566675977, 0.00502404056836697, -0.0105650831181634,
+           -0.00530308057990574, 0.999633379848551, -0.0265515202752075,
+           0.0104278138307761, 0.0266057307535262,0.999591614505535]
+translationVector: !!opencv-matrix
+   rows: 3
+   cols: 1
+   dt: d
+   data: [ -225.177720730918, 1.74502998732886,
+       9.36294051065944 ]
