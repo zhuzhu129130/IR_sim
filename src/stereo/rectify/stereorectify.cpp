@@ -1098,6 +1098,8 @@ int stereoRectifyy::remapImage(cv::Mat& imgleft, cv::Mat& imgright, string metho
    cv::imshow("rectify_left",imgleft);
    cv::imshow("rectify_right",imgright);
    cv::imshow("rectified_image", canvas);
+   cv::imwrite("rec_l.png",imgleft);
+   cv::imwrite("rec_r.png",imgright);
    cv::waitKey(0);
 #endif
 

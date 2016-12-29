@@ -3,3 +3,7 @@
 *.irdv
 *.avi
 *.irv
+build*/*
+*.user
+*.txt~
+*.*~

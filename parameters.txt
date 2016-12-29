@@ -2,14 +2,14 @@
 # 去你妹的yaml! 我再也不用yaml了！简简单单多好！
 
 #程序运行参数calib，rectify，reconstruct，process
-processType=none
+processType=reconstruct
 
 #====================立体标定参数=====================================
 ###图像序列列表#calib_image/imagelist.xml
 imagepath=../params/imagelist_sample.xml
 
 ###立体标定参数保存文件目录stereoCalib.yml
-stereocalib_path=../params/stereo_camera_sw1214.yml
+stereocalib_path=../params/stereo_camera_sw1220.yml
 
 ###棋盘格长宽大小参数
 cornerX=8
@@ -26,7 +26,7 @@ image2_test=../image_result/2_src.png
 rectifymethod=RECTIFY_BOUGUET
 
 ###立体校正参数保存文件
-rectifyParams_path=../params/rectify_camera_sw1214.yml
+rectifyParams_path=../params/rectify_camera_sw1220.yml
 #=============立体校正参数============================================
 
 #================立体重建参数=========================================
@@ -40,16 +40,36 @@ left_extension=.jpg
 img_right=../params/calib/right/right
 right_extension=.jpg
 
-###视差计算算法 BM SGBM VAR ELAS ADCensus sps
-DisparityType=SPS
+###视差计算算法 BM SGBM VAR ELAS ADCensus SPS STCA SSCA
+DisparityType=SSCA
+
+#================SSCA====================
+####CEN(Census Transform)  GRD(intensity + gradient) CG(Census + gradient)
+ccName=CEN
+####- `GF` -- [guided image filter](#GF)
+####- `BF` -- [bilateral filter](#BF)
+####- `BOX` -- box filter
+####- `NL` -- [non-local cost aggregation](#NL)
+####- `ST` -- [segment-tree cost aggregation](#ST)
+caName=ST
+####- `WM` -- [weighted median filtering](#GF)
+####- `SG` -- [segment based] (experimental)
+ppName=SG
+####0.3 for middllebury or 1.0 for kitti
+costAlpha=0.3 
+#`60` for Middlebury and `256` for KITTI dataets.
+maxDis=60 
+#`4` for Middlebury and `1` for KITTI datasets   
+disSc=1                 
+#================SSCA====================
 #================立体重建参数=========================================
 
 #================数据源==============================================
 #三种数据源：image，camera，video,IR_camera
 file_type=image
 
-image1_dir=../test_images/1214/left31.jpg
-image2_dir=../test_images/1214/right31.jpg
+image1_dir=../test_images/1220/left32.jpg
+image2_dir=../test_images/1220/right32.jpg
 
 camera1=1
 camera2=1
