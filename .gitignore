@@ -3,7 +3,12 @@
 *.irdv
 *.avi
 *.irv
+<<<<<<< HEAD
 build*/*
 *.user
 *.txt~
 *.*~
+=======
+./build*
+*.user
+>>>>>>> 8a3cf7df228ecfa20623871ee04f008952c91b95
