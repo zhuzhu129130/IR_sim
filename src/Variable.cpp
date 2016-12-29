@@ -83,3 +83,12 @@ unsigned short info[5];
 
 //========================立体视觉========================
 RunParams runParams;
+
+//============SSCA===========
+string ccName;
+string caName;
+string ppName;
+double costAlpha; //0.3 for middllebury or 1.0 for kitti
+int maxDis;  //`60` for Middlebury and `256` for KITTI dataets.
+int disSc;      //`4` for Middlebury and `1` for KITTI datasets
+//============SSCA===========

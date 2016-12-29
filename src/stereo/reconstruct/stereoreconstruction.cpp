@@ -1,5 +1,6 @@
 #include "stereoreconstruction.h"
 #include "./SPS/defParameter.h"
+#include "./SSCA/GetMehod.h"
 
 stereoReconstruction::stereoReconstruction()
 {
@@ -33,6 +34,15 @@ stereoReconstruction::stereoReconstruction()
     sgbmParams.full_dp_max = 1;
 
     ADCensusInit();
+
+}
+
+stereoReconstruction::~stereoReconstruction()
+{
+    delete [] smPyr;
+    delete ccMtd;
+    delete caMtd;
+    delete ppMtd;
 }
 
 /*----------------------------
@@ -113,7 +123,7 @@ int stereoReconstruction::loadRectifyDatas(string xmlFilePath)
         return (-99);
     }
 
-
+    SSCAInit();
 
     return 1;
 }
@@ -159,6 +169,16 @@ void stereoReconstruction::Disp_compute(cv::Mat& imgleft,cv::Mat& imgright,RunPa
     if(runParams.DisparityType == "SPS")
     {
         SPSMatch(imgleft,imgright,remapMat,img1p,img2p);
+    }
+
+    if(runParams.DisparityType == "STCA")
+    {
+        STCAMatch(imgleft,imgright,remapMat,img1p,img2p);
+    }
+
+    if(runParams.DisparityType == "SSCA")
+    {
+        SSCAMatch(imgleft,imgright,remapMat,img1p,img2p);
     }
 
 }
@@ -740,14 +760,15 @@ int stereoReconstruction::varMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMatr
     cv::rectangle(imgright, remapMat.Calib_Roi_L, CV_RGB(0,0,255), 3);
 
     //-- Check its extreme values
-    cv::minMaxLoc( disp, &minVal, &maxVal );
+    //cv::minMaxLoc( disp, &minVal, &maxVal );
 #if DEBUF_INFO_SHOW
     cout<<"Min disp: Max value"<< minVal<<maxVal; //numberOfDisparities.= (maxVal - minVal)
 #endif
 
     //-- 4. Display it as a CV_8UC1 image
-    disparity.convertTo(disp8u, CV_8U,255/(maxVal - minVal));//(numberOfDisparities*16.)    //255/(maxVal - minVal)
+    //disparity.convertTo(disp8u, CV_8U,255/(maxVal - minVal));//(numberOfDisparities*16.)    //255/(maxVal - minVal)
     //cv::normalize(disp8u, disp8u, 0, 255, CV_MINMAX, CV_8UC1);    // obtain normalized image
+    disparity.convertTo(disp8u, CV_8U, 1 / 4.0, 1 / 4.0);
 
 #if DEBUG_SHOW
     //cv::imshow("left",imgleft);
@@ -802,14 +823,15 @@ int stereoReconstruction::elasMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMat
     cv::rectangle(imageRight, remapMat.Calib_Roi_R, CV_RGB(0,0,255), 3);
 
     //-- Check its extreme values
-    cv::minMaxLoc( disparity, &minVal, &maxVal );
+    //cv::minMaxLoc( disparity, &minVal, &maxVal );
 #if DEBUF_INFO_SHOW
     cout<<"Min disp: Max value"<< minVal<<maxVal; //numberOfDisparities.= (maxVal - minVal)
 #endif
 
     //-- 4. Display it as a CV_8UC1 image
-    disparity.convertTo(disp8u, CV_8U, 255/(maxVal - minVal));//(numberOfDisparities*16.));
-    cv::normalize(disp8u, disp8u, 0, 255, CV_MINMAX, CV_8UC1);    // obtain normalized image
+    //disparity.convertTo(disp8u, CV_8U, 255/(maxVal - minVal));//(numberOfDisparities*16.));
+    //cv::normalize(disp8u, disp8u, 0, 255, CV_MINMAX, CV_8UC1);    // obtain normalized image
+     disparity.convertTo(disp8u, CV_8U,255/(maxVal - minVal));
 
 #if DEBUG_SHOW
     //cv::imshow("left",imgleft);
@@ -834,7 +856,7 @@ int stereoReconstruction::ADCensusInit()
 
     try
     {
-        cfg.readFile("/home/zhu/coding/IR_sim_test/src/stereo/ADCensusBM/sample/config.cfg");
+        cfg.readFile("/home/zhu/coding/IR_sim_test/src/stereo/reconstruct/ADCensusBM/sample/config.cfg");
     }
     catch(const libconfig::FileIOException &fioex)
     {
@@ -979,7 +1001,7 @@ int stereoReconstruction::ADCensusMatch(cv::Mat& imgleft, cv::Mat& imgright,Rema
 }
 
 /*----------------------------
- * 功能 : 基于 SPSensus 算法计算视差
+ * 功能 : 基于 SPS 算法计算视差
  *----------------------------
  * 函数 : stereoReconstruction::ADCensusMatch
  * 访问 : public
@@ -1029,7 +1051,7 @@ int stereoReconstruction::SPSMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMatr
     cout<<"Min disp: Max value"<< minVal<<maxVal; //numberOfDisparities.= (maxVal - minVal)
 #endif
 
-    disparity.convertTo(disp8u, CV_8U, 1 / 1023.0, 1 / 1023.0);//(numberOfDisparities*16.)255/(maxVal - minVal)
+    disparity.convertTo(disp8u, CV_8U, 1 / 128.0, 1 / 128.0);//(numberOfDisparities*16.)255/(maxVal - minVal)
     //-- 4. Display it as a CV_8UC1 image
     //disparity.convertTo(disp8u, CV_8U, 255/(maxVal - minVal));//(numberOfDisparities*16.));
     //cv::normalize(disp8u, disp8u, 0, 255, CV_MINMAX, CV_8UC1);    // obtain normalized image
@@ -1044,7 +1066,206 @@ int stereoReconstruction::SPSMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMatr
     return 1;
 }
 
+/*----------------------------
+ * 功能 : 基于 STCA 算法计算视差
+ *----------------------------
+ * 函数 : stereoReconstruction::STCAMatch
+ * 访问 : public
+ * 返回 : 0 - 失败，1 - 成功
+ *
+ * 参数 : imgLeft		[in]	左摄像机帧图
+ * 参数 : imgRight		[in]	右摄像机帧图
+ * 参数 : disparity		[out]	视差图
+ * 参数 : imageLeft		[out]	处理后的左视图，用于显示
+ * 参数 : imageRight		[out]	处理后的右视图，用于显示
+ */
+int stereoReconstruction::STCAMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMatrixs& remapMat, cv::Mat& imageLeft, cv::Mat& imageRight)
+{
+    // 转换为灰度图
+    //cv::cvtColor(imgleft,img1gray,CV_BGR2GRAY);//numberOfDisparies
+    //cv::cvtColor(imgright,img2gray,CV_BGR2GRAY);
 
+    // 校正图像，使左右视图行对齐
+    cv::remap(imgleft, img1remap, remapMat.Calib_mX_L, remapMat.Calib_mY_L, cv::INTER_LINEAR);		// 对用于视差计算的画面进行校正
+    cv::remap(imgright, img2remap, remapMat.Calib_mX_R, remapMat.Calib_mY_R, cv::INTER_LINEAR);
+
+    int maxLevel = 128;//the maximum disparity level (default 60)
+    int scale = 1;//the scaling parameter for image display (default 4)
+    float sigma = 0.1f;//the threshold parameter for the color distance (default 0.1)
+    METHOD method = ST_RAW; //ST_REFINED
+
+    stereo_routine(img1remap, img2remap, disp8u, maxLevel, scale, sigma, method);
+    //disp.convertTo(disparity,CV_16S,16);
+
+    // 输出处理后的图像
+    imageLeft = img1remap.clone();
+    imageRight = img2remap.clone();
+    cv::rectangle(imageLeft, remapMat.Calib_Roi_L, CV_RGB(0,0,255), 3);
+    cv::rectangle(imageRight, remapMat.Calib_Roi_R, CV_RGB(0,0,255), 3);
+
+    //-- Check its extreme values
+    //cv::minMaxLoc( disparity, &minVal, &maxVal );
+#if DEBUF_INFO_SHOW
+    cout<<"Min disp: Max value"<< minVal<<maxVal; //numberOfDisparities.= (maxVal - minVal)
+#endif
+
+    //disparity.convertTo(disp8u, CV_8U, 1 / 4.0, 1 / 4.0);//(numberOfDisparities*16.)255/(maxVal - minVal)
+    //-- 4. Display it as a CV_8UC1 image
+    //disparity.convertTo(disp8u, CV_8U, 255/(maxVal - minVal));//(numberOfDisparities*16.));
+    //cv::normalize(disp8u, disp8u, 0, 255, CV_MINMAX, CV_8UC1);    // obtain normalized image
+
+#if DEBUG_SHOW
+    //cv::imshow("left",imgleft);
+    //cv::imshow("right",imgright);
+    //cv::imshow("Disp",disp8u);
+    //cv::waitKey(1);
+#endif
+
+    return 1;
+}
+
+bool stereoReconstruction::SSCAInit()
+{
+    PY_LVL = 5; //金字塔层数
+    smPyr = new SSCA*[ PY_LVL ];
+    ccMtd = getCCType( ccName ); //代价计算方式
+    caMtd = getCAType( caName );//代价聚合方式
+    ppMtd = getPPType( ppName );//后处理方式
+    return 1;
+}
+/*----------------------------
+ * 功能 : 基于 SSCA 算法计算视差
+ *----------------------------
+ * 函数 : stereoReconstruction::SSCAMatch
+ * 访问 : public
+ * 返回 : 0 - 失败，1 - 成功
+ *
+ * 参数 : imgLeft		[in]	左摄像机帧图
+ * 参数 : imgRight		[in]	右摄像机帧图
+ * 参数 : disparity		[out]	视差图
+ * 参数 : imageLeft		[out]	处理后的左视图，用于显示
+ * 参数 : imageRight		[out]	处理后的右视图，用于显示
+ */
+int stereoReconstruction::SSCAMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMatrixs& remapMat, cv::Mat& imageLeft, cv::Mat& imageRight)
+{
+    // 转换为灰度图
+    //cv::cvtColor(imgleft,img1gray,CV_BGR2GRAY);//numberOfDisparies
+    //cv::cvtColor(imgright,img2gray,CV_BGR2GRAY);
+
+    // 校正图像，使左右视图行对齐
+    cv::remap(imgleft, img1remap, remapMat.Calib_mX_L, remapMat.Calib_mY_L, cv::INTER_LINEAR);		// 对用于视差计算的画面进行校正
+    cv::remap(imgright, img2remap, remapMat.Calib_mX_R, remapMat.Calib_mY_R, cv::INTER_LINEAR);
+
+    cv::Mat lImg = img1remap.clone();
+    cv::Mat rImg = img2remap.clone();
+    // set image format
+    cv::cvtColor( lImg, lImg, CV_BGR2RGB );
+    cv::cvtColor( rImg, rImg, CV_BGR2RGB );
+    lImg.convertTo( lImg, CV_64F, 1 / 255.0f );
+    rImg.convertTo( rImg, CV_64F,  1 / 255.0f );
+
+    // time
+    double duration;
+    duration = static_cast<double>(getTickCount());
+
+    // Stereo Match at each pyramid
+    // build pyramid and cost volume
+    cv::Mat lP = lImg.clone();
+    cv::Mat rP = rImg.clone();
+
+    int maxDis_c = maxDis;
+    int disSc_c = disSc;
+    for( int p = 0; p < PY_LVL; p ++ )
+    {
+        if( maxDis_c < 5 )
+        {
+            PY_LVL = p;
+            break;
+        }
+        //printf( "\n\tPyramid: %d:", p );
+        smPyr[ p ] = new SSCA( lP, rP, maxDis_c, disSc_c );
+
+        smPyr[ p ]->CostCompute( ccMtd );
+
+        smPyr[ p ]->CostAggre( caMtd  );
+        // pyramid downsample
+        maxDis_c = maxDis_c / 2 + 1;
+        disSc_c *= 2;
+        pyrDown( lP, lP );
+        pyrDown( rP, rP );
+    }
+    //cout << "\n Cost Aggregation in Scale Space\n";
+
+    // new method
+    SolveAll( smPyr, PY_LVL, costAlpha );
+
+    // old method
+    //for( int p = PY_LVL - 2 ; p >= 0; p -- )
+    //{
+    //	smPyr[ p ]->AddPyrCostVol( smPyr[ p + 1 ], costAlpha );
+    //}
+
+    // Match + Postprocess
+    smPyr[ 0 ]->Match();
+    smPyr[ 0 ]->PostProcess( ppMtd );
+    cv::Mat lDis = smPyr[ 0 ]->getLDis();
+    //cv::Mat rDis = smPyr[ 0 ]->getRDis();
+#ifdef _DEBUG
+    for( int s = 0; s < PY_LVL; s ++ ) {
+        smPyr[ s ]->Match();
+        Mat sDis = smPyr[ s ]->getLDis();
+        ostringstream sStr;
+        sStr << s;
+        string sFn = sStr.str( ) + "_ld.png";
+        imwrite( sFn, sDis );
+    }
+    saveOnePixCost( smPyr, PY_LVL );
+#endif
+#ifdef USE_MEDIAN_FILTER
+    //
+    // Median Filter Outputc
+    //
+    MeanFilter( lDis, lDis, 3 );
+#endif
+    duration = static_cast<double>(getTickCount())-duration;
+    duration /= cv::getTickFrequency(); // the elapsed time in sec
+
+    cout << "Total Time: " <<  duration << "s\n";
+
+    // Save Output
+    imwrite( "disp_L.png", lDis );
+   // imwrite( "disp_R.png", rDis );
+
+    disp8u = lDis.clone();
+
+    //disp.convertTo(disparity,CV_16S,16);
+
+    // 输出处理后的图像
+    imageLeft = img1remap.clone();
+    imageRight = img2remap.clone();
+    cv::rectangle(imageLeft, remapMat.Calib_Roi_L, CV_RGB(0,0,255), 3);
+    cv::rectangle(imageRight, remapMat.Calib_Roi_R, CV_RGB(0,0,255), 3);
+
+    //-- Check its extreme values
+    //cv::minMaxLoc( disparity, &minVal, &maxVal );
+#if DEBUF_INFO_SHOW
+    cout<<"Min disp: Max value"<< minVal<<maxVal; //numberOfDisparities.= (maxVal - minVal)
+#endif
+
+    //disparity.convertTo(disp8u, CV_8U, 1 / 4.0, 1 / 4.0);//(numberOfDisparities*16.)255/(maxVal - minVal)
+    //-- 4. Display it as a CV_8UC1 image
+    //disparity.convertTo(disp8u, CV_8U, 255/(maxVal - minVal));//(numberOfDisparities*16.));
+    //cv::normalize(disp8u, disp8u, 0, 255, CV_MINMAX, CV_8UC1);    // obtain normalized image
+
+#if DEBUG_SHOW
+    //cv::imshow("left",imgleft);
+    //cv::imshow("right",imgright);
+    //cv::imshow("Disp",disp8u);
+    //cv::waitKey(1);
+#endif
+
+    return 1;
+}
 /*----------------------------
  * 功能 : 基于 sgm 算法计算视差
  *----------------------------

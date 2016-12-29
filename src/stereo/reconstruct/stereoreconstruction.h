@@ -20,13 +20,24 @@
 #include "../../Variable.h"
 #include "../basefunc/basefunc.h"
 #include "./libelas/elas.h"
-#include "./sgm/stereo_sgm.h"
 
 #include "./ADCensusBM/stereoprocessor.h"
 #include "./ADCensusBM/imageprocessor.h"
 
 #include "./SPS/SGMStereo.h"
 #include "./SPS/SPSStereo.h"
+
+#include "./SSCA/CAST/StereoDisparity.h"
+
+#include "./SSCA/CommFunc.h"
+#include "./SSCA/SSCA.h"
+#include "./SSCA/CC/GrdCC.h"
+#include "./SSCA/CAFilter/GFCA.h"
+
+#define USE_MEDIAN_FILTER
+#ifdef USE_MEDIAN_FILTER
+#include"./SSCA/CAST/Toolkit.h"
+#endif
 
 using namespace std;
 
@@ -85,6 +96,7 @@ class stereoReconstruction
 {
 public:
     stereoReconstruction();
+    ~stereoReconstruction();
 
     RemapMatrixs remapMat;
     double _cx, _cy, f, _tx_inv, _cx_cx_tx_inv;
@@ -127,6 +139,14 @@ public:
     uint maxSearchDepth; uint blurKernelSize; uint cannyThreshold1; uint cannyThreshold2; uint cannyKernelSize;
     //========ADCensus===========
 
+    //============SSCA===========
+    int PY_LVL;
+    SSCA** smPyr;
+    CCMethod* ccMtd;
+    CAMethod* caMtd;
+    PPMethod* ppMtd;
+    //============SSCA===========
+
 public:
     int loadRectifyDatas(string xmlFilePath);
 
@@ -160,6 +180,11 @@ public:
     int ADCensusMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMatrixs& remapMat, cv::Mat& imageLeft, cv::Mat& imageRight);
 
     int SPSMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMatrixs& remapMat, cv::Mat& imageLeft, cv::Mat& imageRight);
+
+    int STCAMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMatrixs& remapMat, cv::Mat& imageLeft, cv::Mat& imageRight);
+
+    bool SSCAInit();
+    int SSCAMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMatrixs& remapMat, cv::Mat& imageLeft, cv::Mat& imageRight);
 
     int remapImage(cv::Mat& imgleft, cv::Mat& imgright, RemapMatrixs& remapMat,string method = "RECTIFY_BOUGUET");
 

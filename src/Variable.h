@@ -91,4 +91,13 @@ extern unsigned short info[5];
 //======================立体视觉===================
 extern RunParams runParams;
 
+//============SSCA===========
+extern string ccName;
+extern string caName;
+extern string ppName;
+extern double costAlpha; //0.3 for middllebury or 1.0 for kitti
+extern int maxDis;  //`60` for Middlebury and `256` for KITTI dataets.
+extern int disSc;      //`4` for Middlebury and `1` for KITTI datasets
+//============SSCA===========
+
 #endif // VARIABLE_H

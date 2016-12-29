@@ -204,15 +204,19 @@ void DVFileStore::DVFileStoreBegin(char argv[])
 
         viewer = createVisualizer( point_cloud_ptr );
 
-        updateSgbmParameters(ss->sgbm,ss->sgbmParams);
-        createBarSgbm(ss->sgbmParams);
+        if(runParams.DisparityType == "SGBM")
+        {
+            updateSgbmParameters(ss->sgbm,ss->sgbmParams);
+            createBarSgbm(ss->sgbmParams);
+        }
+
         cv::Mat img_left = cv::imread(runParams.image1_test,1);
         cv::Mat img_right = cv::imread(runParams.image2_test,1);
         //ss->remapImage(img_left, img_right, ss->remapMat,runParams.rectifymethod);
-        //while(1)
-        //{
-         //   processimg(img_left,img_right);
-       // }
+        while(1)
+        {
+            processimg(img_left,img_right);
+        }
     }
     pose2dto2d = new Pose2Dto2D();
 

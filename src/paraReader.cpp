@@ -1146,6 +1146,16 @@ void paraReader::init_runParams(RunParams& runParams)
     runParams.descriptor =  getData( "descriptor" );
     runParams.good_match_threshold = atof(  getData( "good_match_threshold" ).c_str() );
 
+    if(runParams.DisparityType == "SSCA")
+    {
+        ccName = getData( "ccName" );
+        caName = getData( "caName" );
+        ppName = getData( "ppName" );
+        costAlpha = atof(getData( "costAlpha" ).c_str()); //0.3 for middllebury or 1.0 for kitti
+        maxDis = atoi(getData( "maxDis" ).c_str()); //`60` for Middlebury and `256` for KITTI dataets.
+        disSc = atoi(getData( "disSc" ).c_str());     //`4` for Middlebury and `1` for KITTI datasets
+    }
+
 }
 
 
