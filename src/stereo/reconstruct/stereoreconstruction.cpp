@@ -35,6 +35,8 @@ stereoReconstruction::stereoReconstruction()
 
     ADCensusInit();
 
+    depth = cv::Mat(256,320,CV_32FC3);
+
 }
 
 stereoReconstruction::~stereoReconstruction()
@@ -181,6 +183,13 @@ void stereoReconstruction::Disp_compute(cv::Mat& imgleft,cv::Mat& imgright,RunPa
         SSCAMatch(imgleft,imgright,remapMat,img1p,img2p);
     }
 
+    // 画出等距的若干条横线，以比对 行对准 情况
+//    for( int j = 0; j < img1p.rows; j += 16 )
+//    {
+//        line( img1p, cvPoint(0,j),	cvPoint(img1p.cols,j), CV_RGB(0,255,0));
+//        line( img2p, cvPoint(0,j),	cvPoint(img2p.cols,j), CV_RGB(0,255,0));
+//    }
+
 }
 
 void stereoReconstruction::saveDisp(const char* filename, const cv::Mat& mat)
@@ -237,6 +246,10 @@ void stereoReconstruction::reproject(cv::Mat& disp8u, cv::Mat& img, pcl::PointCl
             point.y = py;
             point.z = pz;
 
+            depth.at<cv::Vec3f>(i,j)[0] = px;
+            depth.at<cv::Vec3f>(i,j)[1] = -py;
+            depth.at<cv::Vec3f>(i,j)[2] = pz;
+
             uint32_t _rgb = ((uint32_t) pr << 16 |
               (uint32_t) pg << 8 | (uint32_t)pb);
             point.rgb = *reinterpret_cast<float*>(&_rgb);
@@ -248,7 +261,7 @@ void stereoReconstruction::reproject(cv::Mat& disp8u, cv::Mat& img, pcl::PointCl
     ptr = point_cloud_ptr;
     ptr->width = (int) ptr->points.size();
     ptr->height = 1;
-    pcl::io::savePCDFile("pcl.pcd", *ptr);
+    //pcl::io::savePCDFile("pcl.pcd", *ptr);
     //pcl::io::savePCDFileASCII("pcl.pcd", *ptr);
 }
 
@@ -1089,10 +1102,10 @@ int stereoReconstruction::STCAMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMat
     cv::remap(imgleft, img1remap, remapMat.Calib_mX_L, remapMat.Calib_mY_L, cv::INTER_LINEAR);		// 对用于视差计算的画面进行校正
     cv::remap(imgright, img2remap, remapMat.Calib_mX_R, remapMat.Calib_mY_R, cv::INTER_LINEAR);
 
-    int maxLevel = 128;//the maximum disparity level (default 60)
+    int maxLevel = 60;//the maximum disparity level (default 60)
     int scale = 1;//the scaling parameter for image display (default 4)
     float sigma = 0.1f;//the threshold parameter for the color distance (default 0.1)
-    METHOD method = ST_RAW; //ST_REFINED
+    METHOD method = ST_REFINED; //ST_RAW
 
     stereo_routine(img1remap, img2remap, disp8u, maxLevel, scale, sigma, method);
     //disp.convertTo(disparity,CV_16S,16);
@@ -1161,7 +1174,7 @@ int stereoReconstruction::SSCAMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMat
     // set image format
     cv::cvtColor( lImg, lImg, CV_BGR2RGB );
     cv::cvtColor( rImg, rImg, CV_BGR2RGB );
-    lImg.convertTo( lImg, CV_64F, 1 / 255.0f );
+    lImg.convertTo( lImg, CV_64F, 1 / 255.0f );//对原图像变成64F格式，并除以255.0
     rImg.convertTo( rImg, CV_64F,  1 / 255.0f );
 
     // time
@@ -1173,31 +1186,31 @@ int stereoReconstruction::SSCAMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMat
     cv::Mat lP = lImg.clone();
     cv::Mat rP = rImg.clone();
 
-    int maxDis_c = maxDis;
-    int disSc_c = disSc;
-    for( int p = 0; p < PY_LVL; p ++ )
+    int maxDis_c = maxDis;//视差范围
+    int disSc_c = disSc;//视差图的缩放因子。
+    for( int p = 0; p < PY_LVL; p ++ )//对图像进行5次金字塔下采样，对每一层图像进行代价聚合
     {
-        if( maxDis_c < 5 )
+        if( maxDis_c < 5 )//随着下采样，视差范围也变小maxDis_c = maxDis_c / 2 + 1;若变小的视差范围小于5,那么金字塔就到这一层结束
         {
             PY_LVL = p;
             break;
         }
         //printf( "\n\tPyramid: %d:", p );
-        smPyr[ p ] = new SSCA( lP, rP, maxDis_c, disSc_c );
+        smPyr[ p ] = new SSCA( lP, rP, maxDis_c, disSc_c );//初始化
 
-        smPyr[ p ]->CostCompute( ccMtd );
+        smPyr[ p ]->CostCompute( ccMtd );//计算匹配代价，有多种方式
 
         smPyr[ p ]->CostAggre( caMtd  );
-        // pyramid downsample
+        // pyramid downsample 金字塔下采样，视差范围变了，视差值乘2。
         maxDis_c = maxDis_c / 2 + 1;
-        disSc_c *= 2;
-        pyrDown( lP, lP );
+        disSc_c *= 2;//视差值乘以2.因为图像变小了一倍，然后视差d肯定比原视差差一倍
+        pyrDown( lP, lP );//金字塔下采样
         pyrDown( rP, rP );
     }
     //cout << "\n Cost Aggregation in Scale Space\n";
 
     // new method
-    SolveAll( smPyr, PY_LVL, costAlpha );
+    SolveAll( smPyr, PY_LVL, costAlpha );//输入每层图像及代价匹配聚合值，层数，每层的相关因子，得到多尺度总的代价聚合结果
 
     // old method
     //for( int p = PY_LVL - 2 ; p >= 0; p -- )
@@ -1208,7 +1221,7 @@ int stereoReconstruction::SSCAMatch(cv::Mat& imgleft, cv::Mat& imgright,RemapMat
     // Match + Postprocess
     smPyr[ 0 ]->Match();
     smPyr[ 0 ]->PostProcess( ppMtd );
-    cv::Mat lDis = smPyr[ 0 ]->getLDis();
+    cv::Mat lDis = smPyr[ 0 ]->getLDis();//返回视差值，啥也没干，就是复制
     //cv::Mat rDis = smPyr[ 0 ]->getRDis();
 #ifdef _DEBUG
     for( int s = 0; s < PY_LVL; s ++ ) {
