@@ -58,7 +58,7 @@ ppName=SG
 ####0.3 for middllebury or 1.0 for kitti
 costAlpha=0.3 
 #`60` for Middlebury and `256` for KITTI dataets.
-maxDis=60 
+maxDis=128
 #`4` for Middlebury and `1` for KITTI datasets   
 disSc=1                 
 #================SSCA====================

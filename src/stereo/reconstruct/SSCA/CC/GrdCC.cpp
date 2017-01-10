@@ -141,7 +141,7 @@ void GrdCC::buildRightCV( const Mat& lImg, const Mat& rImg, const int maxDis, Ma
 			double* rGData = ( double* ) rGrdX.ptr<double>( y );
 			double* cost   = ( double* ) rCostVol[ d  ].ptr<double>( y );
 			for( int x = 0; x < wid; x ++ ) {
-				if( x + d < wid ) {
+                if( x + d < wid ) {//注意这里和左图不一样
 					double* rC = rData + 3 * x;
 					double* lC = lData + 3 * ( x + d );
 					double* rG = rGData + x;

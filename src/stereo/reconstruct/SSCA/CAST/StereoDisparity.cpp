@@ -112,9 +112,9 @@ void stereo_disparity_normal(cv::InputArray left_image, cv::InputArray right_ima
 void stereo_disparity_iteration(cv::InputArray left_image, cv::InputArray right_image, cv::OutputArray disp_, 
 					  int max_dis_level, int scale, float sigma) {
 	cv::Mat imL = left_image.getMat();
-	cv::Mat imR = right_image.getMat();
-	
-	CV_Assert(imL.size() == imR.size());
+    cv::Mat imR = right_image.getMat();
+
+    CV_Assert(imL.size() == imR.size());
 	CV_Assert(imL.type() == CV_8UC3 && imR.type() == CV_8UC3);
 
 	cv::Size imageSize = imL.size();
@@ -169,7 +169,7 @@ void stereo_disparity_iteration(cv::InputArray left_image, cv::InputArray right_
 		}
 	}
 
-//re-segmentation and second run	
+    //re-segmentation and second run
     //printf( "Re-segmentation and second run\n" );
 	cv::Mat costVol = dispHelper.GetMatchingCost(imL, imR, max_dis_level);
 	CColorDepthWeight colorDepthWeight(imL, disparityLeft, mask, max_dis_level);

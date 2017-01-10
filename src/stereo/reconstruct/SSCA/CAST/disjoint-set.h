@@ -41,7 +41,7 @@ private:
 	int num;
 };
 
-universe::universe(int elements) {
+universe::universe(int elements) { //初始化每个像素点的属性，rank=0,size=1,p=像素的位置y*i+x
 	elts = new uni_elt[elements];
 	num = elements;
 	for (int i = 0; i < elements; i++) {

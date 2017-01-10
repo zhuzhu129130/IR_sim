@@ -44,7 +44,7 @@ rgb random_rgb(){
   return c;
 }
 
-// dissimilarity measure between pixels
+// dissimilarity measure between pixels //像素三通道差的平方和 再开方
 static inline float diff(image<float> *r, image<float> *g, image<float> *b,
 			 int x1, int y1, int x2, int y2) {
   return sqrt(square(imRef(r, x1, y1)-imRef(r, x2, y2)) +
@@ -88,14 +88,14 @@ image<rgb> *segment_image(image<rgb> *im, float sigma, float c, int min_size,
       imRef(b, x, y) = imRef(im, x, y).b;
     }
   }
-  image<float> *smooth_r = smooth(r, sigma);
+  image<float> *smooth_r = smooth(r, sigma);//高斯卷积进行平滑
   image<float> *smooth_g = smooth(g, sigma);
   image<float> *smooth_b = smooth(b, sigma);
   delete r;
   delete g;
   delete b;
  
-  // build graph
+  // build graph  建立图像的图结构，边和顶点，两点之间的边的权重就是三通道颜色差的平方和再开方
   edge *edges = new edge[width*height*4];
   int num = 0;
   for (int y = 0; y < height; y++) {
@@ -152,14 +152,14 @@ image<rgb> *segment_image(image<rgb> *im, float sigma, float c, int min_size,
   /* initialize random seed: */
   srand (time(NULL));
   for (int i = 0; i < width*height; i++)
-    colors[i] = random_rgb();
+    colors[i] = random_rgb(); //随机给每个像素赋一个值
   
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       int comp = u->find(y * width + x);
-      imRef(output, x, y) = colors[comp];
+      imRef(output, x, y) = colors[comp]; //把颜色值给图像，完成分割后的每一块都是一个随机颜色
 	  // fill in segment structure
-	  mySeg[ comp ].xIdx.push_back( x );
+      mySeg[ comp ].xIdx.push_back( x ); //把分割块的每个像素都聚合起来
 	  mySeg[ comp ].yIdx.push_back( y );
     }
   }  

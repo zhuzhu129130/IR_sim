@@ -29,6 +29,7 @@ THE SOFTWARE.
 #ifndef __SEGMENT_TREE_H__
 #define __SEGMENT_TREE_H__
 #include <opencv2/core/core.hpp>
+#include <opencv2/opencv.hpp>
 #include <algorithm>
 #include <cmath>
 #include <vector>

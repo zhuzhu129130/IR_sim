@@ -7,7 +7,7 @@
 #include "segment-image.h"
 
 namespace SGPP_FUNC {
-	void lrCheck( Mat& lDis, Mat& rDis, int* lValid, int* rValid, const int disSc )
+    void lrCheck( Mat& lDis, Mat& rDis, int* lValid, int* rValid, const int disSc )  //左右一致性检查，就是判断左视差与右视差是否一致，一致则该像素视差有效。
 	{
 		int hei = lDis.rows;
 		int wid = lDis.cols;
@@ -21,13 +21,13 @@ namespace SGPP_FUNC {
 			uchar* rDisData = ( uchar* ) rDis.ptr<uchar>( y );
 			for( int x = 0; x < wid; x ++ ) {
 				// check left image
-				int lDep = lDisData[ x ] / disSc;
+                int lDep = lDisData[ x ] / disSc; //因为在WTA的时候视差乘以了disSc
 				// assert( ( x - lDep ) >= 0 && ( x - lDep ) < wid );
 				int rLoc = ( x - lDep + wid ) % wid;
 				int rDep = rDisData[ rLoc ] / disSc;
 				// disparity should not be zero
 				if( lDep == rDep && lDep > 3 && lDep < 150 ) {
-					*pLValid = 1;
+                    *pLValid = 1;  //如果左视差等于右视差， 且视差值在3-150之间，这个视差就是有效的。
 				}
 				// check right image
 				rDep = rDisData[ x ] / disSc;
@@ -43,7 +43,7 @@ namespace SGPP_FUNC {
 			}
 		}
 	}
-	void fillInv( Mat& lDis, Mat& rDis, int* lValid, int* rValid )
+	void fillInv( Mat& lDis, Mat& rDis, int* lValid, int* rValid ) //这里就是对左右一致性检查的视差不可靠点，进行左右查找有效点，选择比较小的那个有效点，填充当前视差点
 	{
 		int hei = lDis.rows;
 		int wid = lDis.cols;
@@ -52,7 +52,7 @@ namespace SGPP_FUNC {
 		for( int y = 0; y < hei; y ++ ) {
 			int* yLValid = lValid + y * wid;
 			uchar* lDisData = ( uchar* ) lDis.ptr<uchar>( y );
-			for( int x = 0; x < wid; x ++ ) {
+			for( int x = 0; x < wid; x ++ ) { 
 				if( *pLValid == 0 ) {
 					// find left first valid pixel
 					int lFirst = x;
@@ -140,7 +140,7 @@ namespace SGPP_FUNC {
 	{
 		int hei = lDis.rows;
 		int wid = lDis.cols;
-		int wndR = MED_SZ / 2;
+		int wndR = MED_SZ / 2; //选择35的窗口
 		double* disHist = new double[ maxDis ];
 
 		// filter left
@@ -166,15 +166,15 @@ namespace SGPP_FUNC {
 							int qDep = qDisData[ qx ] / disSc;
 							if( qDep != 0 ) {
 
-								double disWgt = wx * wx + wy * wy;
+								double disWgt = wx * wx + wy * wy; //这是双边滤波的距离权重
 								// disWgt = sqrt( disWgt );
 								double clrWgt = ( pL[ 3 * x ] - qL[ 3 * qx ] ) * ( pL[ 3 * x ] - qL[ 3 * qx ] ) +
 									( pL[ 3 * x + 1 ] - qL[ 3 * qx + 1 ] ) * ( pL[ 3 * x + 1 ] - qL[ 3 * qx + 1 ] ) +
-									( pL[ 3 * x + 2 ] - qL[ 3 * qx + 2 ] ) * ( pL[ 3 * x + 2 ] - qL[ 3 * qx + 2 ] );
+									( pL[ 3 * x + 2 ] - qL[ 3 * qx + 2 ] ) * ( pL[ 3 * x + 2 ] - qL[ 3 * qx + 2 ] );//这是颜色权重
 								// clrWgt = sqrt( clrWgt );
-								double biWgt = exp( - disWgt / ( SIG_DIS * SIG_DIS ) - clrWgt / ( SIG_CLR * SIG_CLR ) );
-								disHist[ qDep ] += biWgt;
-								sumWgt += biWgt;
+								double biWgt = exp( - disWgt / ( SIG_DIS * SIG_DIS ) - clrWgt / ( SIG_CLR * SIG_CLR ) );//综合权重
+								disHist[ qDep ] += biWgt;//窗口内每个像素的视差的直方图加权重
+								sumWgt += biWgt;//窗口内所有像素视差的权重之和
 							}
 							// }
 						}
@@ -182,7 +182,7 @@ namespace SGPP_FUNC {
 					double halfWgt = sumWgt / 2.0f;
 					sumWgt = 0.0f;
 					int filterDep = 0;
-					for( int d = 0; d < maxDis; d ++ ) {
+                    for( int d = 0; d < maxDis; d ++ ) {//如果视差d的直方图累加直到大于所有视差权重直方图之和的一半，就认为此视差d为此像素的视差。
 						sumWgt += disHist[ d ];
 						if( sumWgt >= halfWgt ) {
 							filterDep = d;
@@ -190,7 +190,7 @@ namespace SGPP_FUNC {
 						}
 					}
 					// set new disparity
-					lDisData[ x ] = filterDep * disSc;
+                    lDisData[ x ] = filterDep * disSc; //求的左图经加权中值滤波的视差
 				}
 				pLValid ++;
 			}
@@ -250,7 +250,7 @@ namespace SGPP_FUNC {
 
 		delete [] disHist;
 	}
-	void saveChk( const int hei, const int wid,  int* lValid, int* rValid, Mat& lChk )
+    void saveChk( const int hei, const int wid,  int* lValid, int* rValid, Mat& lChk )//保存最终经左右一致性检查后的有效视差图，有效为255,无效为0
 	{
 		Mat rChk = Mat::zeros( hei, wid, CV_8UC1 );
 		int* pLV = lValid;
@@ -280,7 +280,7 @@ namespace SGPP_FUNC {
 #endif
 	}
 	//
-	// Convert Mat to Image
+    // Convert Mat to Image  把Mat格式转化成我们定义的Image格式
 	//
 	void matToImage( const Mat& mat, image<rgb>*& input )
 	{
@@ -445,8 +445,8 @@ namespace SGPP_FUNC {
 	{
 		int hei = curDis.rows;
 		int wid = curDis.cols;
-		Mat A = Mat::zeros( valCnt, 3, CV_64F );
-		Mat Y = Mat::zeros( valCnt, 1, CV_64F );
+        Mat A = Mat::zeros( valCnt, 3, CV_64F );//分割块各像素的位置
+        Mat Y = Mat::zeros( valCnt, 1, CV_64F ); //分割块各像素的视差值
 		Mat X = Mat::zeros( 3, 1, CV_64F );
 		Mat S = Mat::zeros( valCnt, 1, CV_64F ); 
 		int v = 0;
@@ -467,10 +467,10 @@ namespace SGPP_FUNC {
 		const double lambda = 1;
 		const int ITER_NUM = 10;
 		for( int i = 0 ; i < ITER_NUM; i ++ ) {
-			solve( A, Y - S, X, DECOMP_QR );
-			S =  Y - A * X;
+            solve( A, Y - S, X, DECOMP_QR ); //使用QR原理进行因式分解，求解使AX - （Y - S）最小的X值
+            S =  Y - A * X; //求出最小X后，求解S
 			for( int v = 0; v < valCnt; v ++ ) {
-				double tmpS = S.at<double>( v, 0 );
+                double tmpS = S.at<double>( v, 0 ); //对每一个有效像素，判断其S值，从而得到signS的值。
 				double signS = 0;
 				if( tmpS > 0 ) {
 					signS = 1;
@@ -480,7 +480,7 @@ namespace SGPP_FUNC {
 					signS = - 1;
 				}
 				double tmp = ( fabs( tmpS ) - lambda );
-				S.at<double>( v, 0 ) = signS * ( tmp > 0 ? tmp : 0 );
+                S.at<double>( v, 0 ) = signS * ( tmp > 0 ? tmp : 0 );//求出最后S的值。
 			}
 #ifdef _DEBUG
 			printf( "\n\t\t iter:%d\n", i );
@@ -488,12 +488,12 @@ namespace SGPP_FUNC {
 #endif
 		}
 		
-		// save paramter
+        // save paramter  求出的X就是这个分割块的平面参数，各像素视差就是该平面参数与平面坐标的相乘
 		curS.a = X.at<double>( 0, 0 );
 		curS.b = X.at<double>( 1, 0 );
 		curS.c = X.at<double>( 2, 0 );
 	}
-	void lsRefineOneSeg( MySegment& curS, Mat& curDis, int* curValid )
+    void lsRefineOneSeg( MySegment& curS, Mat& curDis, int* curValid )//根据求出的平面参数，求出该分割块的各点的坐标。
 	{
 		int hei = curDis.rows;
 		int wid = curDis.cols;
@@ -519,9 +519,9 @@ namespace SGPP_FUNC {
 		for( int y = 0;y < hei; y ++ ) {
 			for( int x = 0; x < wid; x ++ ) {
 				// process each segment
-				// segment must > 20 pixels;
+                // segment must > 20 pixels; 分割块必须大于20个像素
 				if( (*pSeg).xIdx.size() > MIN_FIT_SZIE ) {
-					printf( "Seg %d ", prcSegCnt );
+                    //printf( "Seg %d ", prcSegCnt );
 					prcSegCnt ++;
 					// d( x, y ) = ax + by + c
 					MySegment curS = *pSeg;
@@ -539,17 +539,17 @@ namespace SGPP_FUNC {
 							valCnt ++;
 						}
 					}
-					int totalSize = (*pSeg).xIdx.size();
+                    int totalSize = (*pSeg).xIdx.size();//如果这个分割块中的像素数大于DIFF_FIT_CUT200,就总数*0.1,反之*0.4
 					int valFlag = 0;
 					if( totalSize > DIFF_FIT_CUT ) {
 						valFlag = totalSize * SMALL_PERC;
 					} else {
 						valFlag = totalSize * BIG_PERC;
 					}
-					if( valCnt >= valFlag ) {
-						// only handle regions with large valid count
+                    if( valCnt >= valFlag ) { //如果有效像素数大于valFlag，就进行处理这个分割块
+                        // only handle regions with large valid count  对有效像素多的分割块进行计算平面参数
 						lsFitOneSeg( curS, lDis, lValid, valCnt );
-						// refine current segment
+                        // refine current segment  //根据计算的平面参数求解该分割块每个像素的视差。
 						lsRefineOneSeg( curS, lDis, lValid );
 					}
 				}
@@ -608,27 +608,27 @@ namespace SGPP_FUNC {
 void SGPP::postProcess( const Mat& lImg, const Mat& rImg, const int maxDis, const int disSc, Mat& lDis, Mat& rDis,
 	Mat& lSeg, Mat& lChk )
 {
-	// color image should be 3x3 median filtered
-	// according to weightedMedianMatlab.m from CVPR11
+    // color image should be 3x3 median filtered 彩色图像必须经过3x3的中值滤波
+    // according to weightedMedianMatlab.m from CVPR11 根据加权中值
 	Mat lFloat, rFloat;
 	Mat lUchar, rUchar;
-	lImg.convertTo( lUchar, CV_8U,  255 );
+    lImg.convertTo( lUchar, CV_8U,  255 ); //转换成8U的，图像数据恢复成原来的值
 	rImg.convertTo( rUchar, CV_8U,  255 );
 	lImg.convertTo( lFloat, CV_32F );
 	rImg.convertTo( rFloat, CV_32F );
-	int hei = lDis.rows;
+    int hei = lDis.rows; //视差图的高宽
 	int wid = lDis.cols;
 	int imgSize = hei * wid;
-	int* lValid = new int[ imgSize ];
+    int* lValid = new int[ imgSize ]; //最后生成的有效的图像
 	int* rValid = new int[ imgSize ];
 	
 
 
-	// qualise hist of lUchar
+    // qualise hist of lUchar 对8U的图像先灰度化，直方图均衡化，再恢复RGB三通道。
 	Mat lGray;
-	cvtColor( lUchar, lGray, CV_RGB2GRAY );
-	equalizeHist( lGray, lGray );
-	cvtColor( lGray, lUchar, CV_GRAY2RGB );
+    cvtColor( lUchar, lGray, CV_RGB2GRAY ); //灰度化
+    equalizeHist( lGray, lGray ); //提高灰度图像的对比度
+    cvtColor( lGray, lUchar, CV_GRAY2RGB ); //
 	Mat rGray;
 	cvtColor( rUchar, rGray, CV_RGB2GRAY );
 	equalizeHist( rGray, rGray );
@@ -637,14 +637,14 @@ void SGPP::postProcess( const Mat& lImg, const Mat& rImg, const int maxDis, cons
 	// Graph Segmentation
 	//
 	image<rgb>* input = new image<rgb>( wid, hei );
-	// convert mat to image
+    // convert mat to image //转换Mat格式到我们定义的Image格式
 	SGPP_FUNC::matToImage( lUchar, input );
 	// sgement image
-	printf( "\n\t\tSegmentation..." );
+    //printf( "\n\t\tSegmentation..." );
 	int num_ccs;
 	MySegment* lMySeg = new MySegment[ wid * hei ];
 	image<rgb> *seg = segment_image(input, SEG_SIGMA, SEG_K, 
-		SEG_MIN, &num_ccs, lMySeg ); 
+        SEG_MIN, &num_ccs, lMySeg );  //得到分割后的图像seg，另外得到IMySeg，指明每个分割块中所含的像素
 	// get segment image
 	SGPP_FUNC::imageToMat( seg, lSeg );
 	MySegment* rMySeg = new MySegment[ wid * hei ];
@@ -657,7 +657,7 @@ void SGPP::postProcess( const Mat& lImg, const Mat& rImg, const int maxDis, cons
 #endif
 	// for( int iter = 0; iter < 3; iter ++ ) {
 		// weight median refinement
-		printf( "\n\t\tWeight median refinement..." );
+        printf( "\n\t\tWeight median refinement..." );//中值滤波求精。
 		SGPP_FUNC::lrCheck( lDis, rDis, lValid, rValid, disSc );
 		SGPP_FUNC::fillInv( lDis, rDis, lValid, rValid );
 		SGPP_FUNC::wgtMedian( lFloat, rFloat, lDis, rDis, lValid, rValid, maxDis, disSc );
@@ -668,14 +668,14 @@ void SGPP::postProcess( const Mat& lImg, const Mat& rImg, const int maxDis, cons
 #endif
 		// plane-fit to refine disparity
 		printf( "\n\t\tPlane-fit to refine..." );
-		SGPP_FUNC::lsPlaneFit( lDis, rDis, lValid, rValid, lMySeg, rMySeg );
+        SGPP_FUNC::lsPlaneFit( lDis, rDis, lValid, rValid, lMySeg, rMySeg );//计算分割块平面参数，然后对视差进行求精。
 
 
 	// }
 
 	// get check image
-	SGPP_FUNC::lrCheck( lDis, rDis, lValid, rValid, disSc );
-	SGPP_FUNC::saveChk( hei, wid, lValid, rValid, lChk );
+    SGPP_FUNC::lrCheck( lDis, rDis, lValid, rValid, disSc );//最后再进行一次左右一致性检查，
+    SGPP_FUNC::saveChk( hei, wid, lValid, rValid, lChk );//然后可以输出不一致点的图。
 
 	delete input;
 	delete [] lMySeg;

@@ -12,13 +12,13 @@ SSCA::SSCA(const Mat l, const Mat r, const int m, const int d)
 	lDis = Mat::zeros( hei, wid, CV_8UC1 );
 #ifdef COMPUTE_RIGHT
 	rDis = Mat::zeros( hei, wid, CV_8UC1 );
-	lSeg = Mat::zeros( hei, wid, CV_8UC3 );
-	lChk = Mat::zeros( hei, wid, CV_8UC1 );
+    lSeg = Mat::zeros( hei, wid, CV_8UC3 );//分割的图像
+    lChk = Mat::zeros( hei, wid, CV_8UC1 );//左右交叉检查的图像
 #endif
 	// init cost volum data
 	costVol = new Mat[ maxDis  ];
 	for( int mIdx = 0; mIdx < maxDis; mIdx ++ ) {
-		costVol[ mIdx ] = Mat::zeros( hei, wid, CV_64FC1 );
+        costVol[ mIdx ] = Mat::zeros( hei, wid, CV_64FC1 );//对每个视差值，设置一个Mat数组，保存当前视差d下的匹配代价。
 	}
 #ifdef COMPUTE_RIGHT
 	rCostVol = new Mat[ maxDis ];
@@ -157,7 +157,7 @@ void SSCA::CostAggre( CAMethod* caMtd )
 //
 // 3. Match
 //
-void SSCA::Match( void )
+void SSCA::Match( void )//WTA算法求左右视差
 {
     //printf( "\n\tMatch" );
 	for( int y = 0; y < hei; y ++ ) {
@@ -208,7 +208,7 @@ void SSCA::PostProcess( PPMethod* ppMtd )
 	}
 }
 #ifdef _DEBUG
-// global function to solve all cost volume
+// global function to solve all cost volume//这里是求每一层的代价聚合值
 void SolveAll( SSCA**& smPyr, const int PY_LVL, const double REG_LAMBDA )
 {
 	printf( "\n\t\tSolve All" );
@@ -284,7 +284,7 @@ void SolveAll( SSCA**& smPyr, const int PY_LVL, const double REG_LAMBDA )
 
 	for( int s = 0; s < PY_LVL; s ++ ) {
 		for( int d = 0; d < smPyr[ s ]->maxDis; d ++ ) {
-			smPyr[ s ]->costVol[ d ] = newCosts[ s ][ d ].clone();
+            smPyr[ s ]->costVol[ d ] = newCosts[ s ][ d ].clone();//这里是求每一层的代价聚合值
 		}
 	}
 	// PrintMat<double>( smPyr[ 0 ]->costVol[ 1 ] );
@@ -332,7 +332,7 @@ void SolveAll( SSCA**& smPyr, const int PY_LVL, const double REG_LAMBDA )
     //printf( "\n\t\tReg param: %.4lf\n", REG_LAMBDA );
 	// construct regularization matrix
 	Mat regMat = Mat::zeros( PY_LVL, PY_LVL, CV_64FC1 );
-	for( int s = 0; s < PY_LVL; s ++ ) {
+    for( int s = 0; s < PY_LVL; s ++ ) { //对金字塔的每层之间，及每层与上下层之间的相关因子进行计算
 		if( s == 0 ) {
 			regMat.at<double>( s, s ) = 1 + REG_LAMBDA;
 			regMat.at<double>( s, s + 1 ) = - REG_LAMBDA;
@@ -345,16 +345,16 @@ void SolveAll( SSCA**& smPyr, const int PY_LVL, const double REG_LAMBDA )
 			regMat.at<double>( s, s + 1 ) = - REG_LAMBDA;
 		}
 	}
-	Mat regInv = regMat.inv( );
+    Mat regInv = regMat.inv( );//对因子矩阵求反
 	double* invWgt  = new double[ PY_LVL ];
 	for( int s = 0; s < PY_LVL; s ++ ) {
 		invWgt[ s ] = regInv.at<double>( 0, s );
 	}
     //PrintMat<double>( regInv );
-	int hei = smPyr[ 0 ]->hei;
+    int hei = smPyr[ 0 ]->hei;//原始图像大小
 	int wid = smPyr[ 0 ]->wid;
 	// PrintMat<double>( smPyr[ 0 ]->costVol[ 1 ] );
-	// for each cost volume divide its mean value
+    // for each cost volume divide its mean value对每个像素的代价聚合值 除以 该像素在所有d下的代价聚合值的均值。不理解为什么
 	//for( int s = 0; s < PY_LVL; s++ ) {
 	//	for( int y = 0; y < smPyr[ s ]->hei; y ++ ) {
 	//		for( int x = 0; x < smPyr[ s ]->wid; x ++ ) {
@@ -392,12 +392,12 @@ void SolveAll( SSCA**& smPyr, const int PY_LVL, const double REG_LAMBDA )
 						printf( "\ns=%d(%d,%d)\td=%d\tcost=%.4lf", s, curY, curX, curD, curCost );
 					}
 #endif
-					sum += invWgt[ s ] * curCost;
-					curY = curY / 2;
+                    sum += invWgt[ s ] * curCost;//这里就体现了多尺度的特点，就是多尺度的像素代价聚合值加权求和
+                    curY = curY / 2;//这是为了求下一层的代价聚合值
 					curX = curX / 2;
 					curD = ( curD + 1 ) / 2;
 				}
-				smPyr[ 0 ]->costVol[ d ].at<double>( y, x ) = sum;
+                smPyr[ 0 ]->costVol[ d ].at<double>( y, x ) = sum;//再把所有层的代价聚合值加权和得到的总的代价聚合值返给原始图像层，作为最终的代价聚合值
 
 			}
 		}
@@ -405,7 +405,7 @@ void SolveAll( SSCA**& smPyr, const int PY_LVL, const double REG_LAMBDA )
 
 #ifdef COMPUTE_RIGHT
 	//
-	// Right Cost Volume
+    // Right Cost Volume求从右图匹配左图的总的代价聚合值。
 	//
 	for( int d = 1; d < smPyr[ 0 ]->maxDis; d ++ ) {
 		// printf( ".s.v." );

@@ -43,12 +43,12 @@ void CSegmentTree::BuildSegmentTree(cv::Mat img, float sigma, float tau, CWeight
 //step 1: build segment tree
 	edge *edges = new edge[m_imgSize.area() * NUM_NEIGHBOR / 2];
 	int edgeNum = 0;
-	for(int y = 0;y < m_imgSize.height;y++) {
+    for(int y = 0;y < m_imgSize.height;y++) {//遍历所有的像素，从左上角开始，与右边的像素和上边的像素求边权重。
 		for(int x = 0;x < m_imgSize.width;x++) {
 			if(x < m_imgSize.width - 1) {
 				edges[edgeNum].a = y * m_imgSize.width + x;
 				edges[edgeNum].b = y * m_imgSize.width + (x + 1);
-				edges[edgeNum].w = weightProvider.GetWeight(x, y, x + 1, y);
+                edges[edgeNum].w = weightProvider.GetWeight(x, y, x + 1, y);//得到三通道颜色值最大的差值
 				edgeNum++;
 			}
 
@@ -67,19 +67,20 @@ void CSegmentTree::BuildSegmentTree(cv::Mat img, float sigma, float tau, CWeight
 
 	CV_Assert(1 == u->num_sets());
 
-//step 2: build node based graph
+    //step 2: build node based graph   这里求出每个点与周围四邻域的点的父子关系，并给出这两个点之间的距离。
+    //因为mask并不全为255,所以只有当这个点的邻域点是根据当前点判断进入分割块，或者分割块之间，才算作子节点。
 	TreeNode *AdjTable = new TreeNode[pixelsNum];
-	for(int i = 0;i < pixelsNum;i++) AdjTable[i].id = i;
+    for(int i = 0;i < pixelsNum;i++) AdjTable[i].id = i;//初始化每个像素的id为像素的位置
 
 	for(int i = 0;i < edgeNum;i++) {
-		if(!edges_mask[i]) continue;
+        if(!edges_mask[i]) continue;//如果该边没有被计算是否分割，则继续
 
 		int pa = edges[i].a;
 		int pb = edges[i].b;
 		int dis = std::min(int(edges[i].w * weightProvider.GetScale() + 0.5f), 255);
 
 		int x0, y0, x1, y1;
-		x0 = pa % m_imgSize.width; y0 = pa / m_imgSize.width;
+        x0 = pa % m_imgSize.width; y0 = pa / m_imgSize.width;//求出x0在图像中的确切位置
 		x1 = pb % m_imgSize.width; y1 = pb / m_imgSize.width;
 
 		TreeNode &nodeA = AdjTable[pa];
@@ -167,8 +168,8 @@ void CSegmentTree::Filter(cv::Mat costVol, int maxLevel) {
 	}
 
 //second pass: from root to leaf
-	memcpy(&costPtr(0), &bufferPtr(0), sizeof(float) * maxLevel);
-	for(int i = 1;i < pixelsNum;i++) {
+    memcpy(&costPtr(0), &bufferPtr(0), sizeof(float) * maxLevel);//这个就是最开始的父节点。
+    for(int i = 1;i < pixelsNum;i++) {//注意上面的循环顺序和此处的不同
 		TreeNode &node = m_tree[i];
 		float *final_cost = &costPtr(node.id * maxLevel);
 		float *cur_cost = &bufferPtr(node.id * maxLevel);
@@ -186,7 +187,7 @@ CColorWeight::CColorWeight(cv::Mat &img_) {
 	imgPtr = img;
 }
 
-float CColorWeight::GetWeight(int x0, int y0, int x1, int y1) const {
+float CColorWeight::GetWeight(int x0, int y0, int x1, int y1) const {//得到三通道两个像素值差值最大的那个通道的差值的绝对值
 	return (float)std::max(
 		std::max( abs(imgPtr(y0,x0)[0] - imgPtr(y1,x1)[0]), abs(imgPtr(y0,x0)[1] - imgPtr(y1,x1)[1]) ), 
 		abs(imgPtr(y0,x0)[2] - imgPtr(y1,x1)[2])

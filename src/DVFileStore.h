@@ -95,6 +95,11 @@ public:
 
     void ProcessZbuf(unsigned short *buf_recv,cv::Mat& J);
 
+    void detectNearObject(cv::Mat& image, cv::Mat& pointCloud, vector<ObjectInfo>& objectInfos);
+    void imageDenoising( cv::Mat& img, int iters );
+    void parseCandidates(cv::Mat& objects, cv::Mat& depthMap, vector<ObjectInfo>& objectInfos);
+    void showObjectInfo(vector<ObjectInfo>& objectInfos, cv::Mat& outImage);
+
 public:    
     cv::VideoWriter writer;
     cv::Mat I,J;
@@ -126,6 +131,11 @@ public:
     cv::Mat imgGray;
 
     Pose2Dto2D* pose2dto2d;
+
+    double m_ObjectWidth;
+    double m_ObjectHeight;
+    double m_ObjectDistance;
+    double m_ObjectDisparity;
 
 };
 
